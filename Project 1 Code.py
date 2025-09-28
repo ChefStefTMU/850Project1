@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import StackingClassifier, RandomForestClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 ## QUESTION 1 ##
 
@@ -134,7 +134,7 @@ mdl3_grid = GridSearchCV(mdl3, mdl3_params, cv = 5, n_jobs = -1, scoring='accura
 mdl3_grid.fit(X_train, y_train)
 
 print('The Best Parameters for the SVM Model Are:')
-for param, value in mdl2_grid.best_params_.items():
+for param, value in mdl3_grid.best_params_.items():
     print(f"  {param}: {value}")
 print("Training Accuracy:", accuracy_score(y_train, mdl3_grid.best_estimator_.predict(X_train)))
 print("Testing Accuracy:", accuracy_score(y_test, mdl3_grid.best_estimator_.predict(X_test)))
@@ -162,4 +162,46 @@ print("Training Accuracy:", accuracy_score(y_train, mdl4_random.best_estimator_.
 print("Testing Accuracy:", accuracy_score(y_test, mdl4_random.best_estimator_.predict(X_test)))
 print('\n')
 
+## QUESTION 5 ##
+
+mdls = {
+    "Random Forest (GS)": mdl1_grid.best_estimator_,
+    "Logistic Regression": mdl2_grid.best_estimator_,
+    "SVM": mdl3_grid.best_estimator_,
+    "Random Forest (RS)": mdl4_random.best_estimator_
+    }
+
+results = {}
+
+for name, mdl in mdls.items():
+    y_pred = mdl.predict(X_test)
+    results[name] = {
+        "Accuracy": accuracy_score(y_test, y_pred),
+        "Precision": precision_score(y_test, y_pred, average='weighted'),
+        "Recall": recall_score(y_test, y_pred, average='weighted'),
+        "F1 Score": f1_score(y_test, y_pred, average='weighted')
+    }
+
+print('Model Performance Comparison:')
+print('\n')
+for mdl, metrics in results.items():
+    print(f"{mdl}:")
+    for metric, value in metrics.items():
+        print(f"  {metric}: {value:.4f}")
+    print('\n')
+
+best_mdl = mdls[max(results, key = lambda x: results[x]["F1 Score"])]
+
+print(f"The Best Model For This Dataset Is: {best_mdl}")
+
+y_pred_best = best_mdl.predict(X_test)
+cm = confusion_matrix(y_test, y_pred_best)
+
+cm = confusion_matrix(y_test, y_pred_best)
+sns.heatmap(cm, annot=True, fmt="d", cmap = 'Blues')
+plt.title(f"Confusion Matrix {best_mdl}")
+plt.xlabel("Predicted"); plt.ylabel("Actual")
+plt.show()
+
+## QUESTION 6 ##
 
