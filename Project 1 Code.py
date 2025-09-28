@@ -2,168 +2,164 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
 
 ## QUESTION 1 ##
 
-df = pd.read_csv('data/project_1_data.csv')
-df = df.dropna().reset_index(drop=True)
-df['Step'] = df['Step'].astype(int)
+# Read the data
+
+data = pd.read_csv('data/project_1_data.csv')
+
+df = pd.DataFrame(data)
 
 ## QUESTION 2 ##
 
-print('Shape of the Data:')
-print(df.shape, '\n')
+# Statistical analysis
+
+print('Shape of the data:')
+print('\n')
+print('Rows, Columns')
+print(df.shape)
+print('\n')
+
+print('First five rows of data:')
+print('\n')
+print(df.head())
+print('\n')
 
 print('Statistical Summary:')
-print(df.describe(), '\n')
+print('\n')
+print(df.describe())
+print('\n')
 
-print('First Five Rows of Data:')
-print(df.head(), '\n')
+# Visualization of the data
 
-# VISUALIZE DISTRIBUTIONS
-for data_columns in ['X', 'Y', 'Z']:
-    plt.hist(df[data_columns], bins=25, color='lightblue', edgecolor='black')
-    plt.title(f'{data_columns} Distribution')
-    plt.xlabel(f'{data_columns} Value')
+for col in ['X', 'Y', 'Z']:
+    plt.figure(figsize=(6,4))
+    plt.hist(df[col], bins=25, color='lightblue', edgecolor='black')
+    plt.title(f'{col} Distribution')
+    plt.xlabel(f'{col} Value')
     plt.ylabel('Frequency')
+    plt.grid(alpha=0.3)
     plt.show()
 
-plt.hist(df['Step'], bins=len(df['Step'].unique()), color='lightblue', edgecolor='black')
+plt.figure(figsize=(6,4))
+plt.hist(df['Step'], bins=13, color='lightblue', edgecolor='black')
 plt.title('Step Distribution')
 plt.xlabel('Step Value')
 plt.ylabel('Frequency')
+plt.grid(alpha=0.3)
 plt.show()
 
 ## QUESTION 3 ##
 
-# CORRELATION MATRIX
-corr = df.corr(method='pearson')
-print('Correlation Matrix:\n', corr, '\n')
+# Correlation matrix creation and plotting
 
-sns.heatmap(corr, annot=True)
-plt.title('Pearson Correlation Heatmap')
+corr = df.corr(method = 'pearson')
+
+print('Correlation Matrix:')
+print('\n')
+print(corr)
+print('\n')
+
+plt.figure()
+sns.heatmap(corr, annot = True)
+plt.title('Correlation Matrix')
 plt.show()
 
 ## QUESTION 4 ##
 
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, classification_report, log_loss, confusion_matrix
+# Define variables for ML models
 
-# DEFINE VARIABLES
 X = df[['X', 'Y', 'Z']]
 y = df['Step']
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
-)
 
-# RANDOM FOREST MODEL (MODEL 1)
-mdl1 = RandomForestClassifier(random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42, stratify = y)
+
+# Model 1: Random Forest
+
+mdl1 = RandomForestClassifier(random_state = 42)
+
 mdl1_params = {
-    'n_estimators': [50, 100, 200],
-    'max_depth': [None, 10, 20, 30],
-    'min_samples_split': [2, 5, 10],
-    'min_samples_leaf': [1, 2, 4],
-    'max_features': ['sqrt', 'log2']
-}
-mdl1_search = GridSearchCV(mdl1, mdl1_params, scoring='accuracy', n_jobs=-1, cv=5, verbose=0)
-mdl1_search.fit(X_train, y_train)
-best_mdl1 = mdl1_search.best_estimator_
-y_pred1 = best_mdl1.predict(X_test)
+    'n_estimators': [100, 200, 500],       
+    'max_depth': [None, 10, 20, 30],       
+    'min_samples_split': [2, 5, 10],           
+    'max_features': ['sqrt', 'log2'] 
+    }
 
-print('\nBest Hyperparameters for Random Forest:')
-for param, value in mdl1_search.best_params_.items():
-    print(f'{param}: {value}')
+mdl1_grid = GridSearchCV(mdl1, mdl1_params, cv = 5, n_jobs = -1, scoring='accuracy')
+mdl1_grid.fit(X_train, y_train)
 
-print('\nTest Accuracy (Random Forest):', accuracy_score(y_test, y_pred1))
-print('\nClassification Report (Random Forest):\n', classification_report(y_test, y_pred1))
-y_pred_proba1 = best_mdl1.predict_proba(X_test)
-print('\nCross-Entropy Loss (Random Forest):', log_loss(y_test, y_pred_proba1))
-cv_scores1 = cross_val_score(best_mdl1, X, y, cv=5, scoring='accuracy')
-print('\nCross-validation scores (Random Forest):', cv_scores1)
-print('Mean CV accuracy:', cv_scores1.mean())
-print('Standard deviation:', cv_scores1.std())
+print('The Best Parameters for the Random Forest Model Are:')
+for param, value in mdl1_grid.best_params_.items():
+    print(f"  {param}: {value}")
+print("Training Accuracy:", accuracy_score(y_train, mdl1_grid.best_estimator_.predict(X_train)))
+print("Testing Accuracy:", accuracy_score(y_test, mdl1_grid.best_estimator_.predict(X_test)))
+print('\n')
 
-# LOGISTIC REGRESSION (MODEL 2)
-pipe_logreg = Pipeline([
-    ('scaler', StandardScaler()),
-    ('log_reg', LogisticRegression(max_iter=1000, random_state=42))
-])
+# Model 2: Logistic Regression
+
+mdl2 = LogisticRegression(max_iter = 5000)
 mdl2_params = {
-    'log_reg__C': [0.01, 0.1, 1, 10],
-    'log_reg__penalty': ['l2'],
-    'log_reg__solver': ['lbfgs', 'saga']
+    'C': [0.01, 0.1, 1, 10], 
+    'penalty': ['l2'], 
+    'solver': ['lbfgs', 'liblinear']
+    }
+
+
+mdl2_grid = GridSearchCV(mdl2, mdl2_params, cv = 5, n_jobs = -1, scoring='accuracy')
+mdl2_grid.fit(X_train, y_train)
+
+print('The Best Parameters for the Logistic Regression Model Are:')
+for param, value in mdl2_grid.best_params_.items():
+    print(f"  {param}: {value}")
+print("Training Accuracy:", accuracy_score(y_train, mdl2_grid.best_estimator_.predict(X_train)))
+print("Testing Accuracy:", accuracy_score(y_test, mdl2_grid.best_estimator_.predict(X_test)))
+print('\n')
+
+# Model 3: SVM
+
+mdl3 = SVC()
+mdl3_params = {
+    'C': [0.1, 1, 10],
+    'kernel': ['linear', 'rbf', 'poly'],
+    'gamma': ['scale', 'auto']
 }
-mdl2_search = GridSearchCV(pipe_logreg, mdl2_params, scoring='accuracy', n_jobs=-1, cv=5, verbose=0)
-mdl2_search.fit(X_train, y_train)
-best_mdl2 = mdl2_search.best_estimator_
-y_pred2 = best_mdl2.predict(X_test)
 
-print('\nBest Hyperparameters for Logistic Regression:')
-for param, value in mdl2_search.best_params_.items():
-    print(f'{param}: {value}')
+mdl3_grid = GridSearchCV(mdl3, mdl3_params, cv = 5, n_jobs = -1, scoring='accuracy')
+mdl3_grid.fit(X_train, y_train)
 
-print('\nTest Accuracy (Logistic Regression):', accuracy_score(y_test, y_pred2))
-print('\nClassification Report (Logistic Regression):\n', classification_report(y_test, y_pred2))
-y_pred_proba2 = best_mdl2.predict_proba(X_test)
-print('\nCross-Entropy Loss (Logistic Regression):', log_loss(y_test, y_pred_proba2))
-cv_scores2 = cross_val_score(best_mdl2, X, y, cv=5, scoring='accuracy')
-print('\nCross-validation scores (Logistic Regression):', cv_scores2)
-print('Mean CV accuracy:', cv_scores2.mean())
-print('Standard deviation:', cv_scores2.std())
+print('The Best Parameters for the SVM Model Are:')
+for param, value in mdl2_grid.best_params_.items():
+    print(f"  {param}: {value}")
+print("Training Accuracy:", accuracy_score(y_train, mdl3_grid.best_estimator_.predict(X_train)))
+print("Testing Accuracy:", accuracy_score(y_test, mdl3_grid.best_estimator_.predict(X_test)))
+print('\n')
 
-# SVM MODEL (MODEL 3)
-pipe_svm = Pipeline([
-    ('scaler', StandardScaler()),
-    ('svm', SVC(probability=True, random_state=42))
-])
-svm_params = {
-    'svm__C': [0.1, 1, 10],
-    'svm__kernel': ['linear', 'rbf'],
-    'svm__gamma': ['scale', 'auto']
+# Model 4: Random Forest with Random Search
+
+mdl4 = RandomForestClassifier(random_state=42)
+mdl4_params = {
+    'n_estimators': [50, 100, 200, 300, 500],
+    'max_depth': [None, 10, 20, 30, 50],
+    'min_samples_split': [2, 5, 10, 15],
+    'min_samples_leaf': [1, 2, 4, 6],
+    'max_features': ['sqrt', 'log2', None]
 }
-svm_search = GridSearchCV(pipe_svm, svm_params, scoring='accuracy', n_jobs=-1, cv=5, verbose=0)
-svm_search.fit(X_train, y_train)
-best_svm = svm_search.best_estimator_
-y_pred_svm = best_svm.predict(X_test)
 
-print('\nBest Hyperparameters for SVM:')
-for param, value in svm_search.best_params_.items():
-    print(f'{param}: {value}')
+mdl4_random = RandomizedSearchCV(mdl4, mdl4_params, n_iter = 30, cv = 5, n_jobs = -1, scoring='accuracy')
+mdl4_random.fit(X_train, y_train)
 
-print('\nTest Accuracy (SVM):', accuracy_score(y_test, y_pred_svm))
-print('\nClassification Report (SVM):\n', classification_report(y_test, y_pred_svm))
-y_pred_proba_svm = best_svm.predict_proba(X_test)
-print('\nCross-Entropy Loss (SVM):', log_loss(y_test, y_pred_proba_svm))
-cv_scores_svm = cross_val_score(best_svm, X, y, cv=5, scoring='accuracy')
-print('\nCross-validation scores (SVM):', cv_scores_svm)
-print('Mean CV accuracy:', cv_scores_svm.mean())
-print('Standard deviation:', cv_scores_svm.std())
+print('The Best Parameters for the Random Forest Model with RandomSearchCV Are:')
+for param, value in mdl4_random.best_params_.items():
+    print(f"  {param}: {value}")
 
-## QUESTION 5 ##
+print("Training Accuracy:", accuracy_score(y_train, mdl4_random.best_estimator_.predict(X_train)))
+print("Testing Accuracy:", accuracy_score(y_test, mdl4_random.best_estimator_.predict(X_test)))
+print('\n')
 
-# Confusion Matrices
-cm1 = confusion_matrix(y_test, y_pred1)
-sns.heatmap(cm1, annot=True, fmt='d', cmap='Oranges')
-plt.title('Confusion Matrix - Random Forest')
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.show()
 
-cm2 = confusion_matrix(y_test, y_pred2)
-sns.heatmap(cm2, annot=True, fmt='d', cmap='Blues')
-plt.title('Confusion Matrix - Logistic Regression')
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.show()
-
-cm3 = confusion_matrix(y_test, y_pred_svm)
-sns.heatmap(cm3, annot=True, fmt='d', cmap='Greens')
-plt.title('Confusion Matrix - SVM')
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.show()
