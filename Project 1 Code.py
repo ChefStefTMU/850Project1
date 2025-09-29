@@ -28,23 +28,54 @@ print(df.head(), "\n")
 print("Statistical Summary:")
 print(df.describe(), "\n")
 
-# Visualization
+# Step-wise averages for X, Y, Z
+step_means = df.groupby("Step")[["X", "Y", "Z"]].mean()
+
+# Visualization of distributions and averages
 for col in ["X", "Y", "Z"]:
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(10, 4))
+    
+    # Left: overall distribution
+    plt.subplot(1, 2, 1)
     plt.hist(df[col], bins=25, color="lightblue", edgecolor="black")
     plt.title(f"{col} Distribution")
     plt.xlabel(f"{col} Value")
     plt.ylabel("Frequency")
     plt.grid(alpha=0.3)
+    
+    # Right: average per step
+    plt.subplot(1, 2, 2)
+    plt.bar(step_means.index.astype(str), step_means[col], color="lightgreen", edgecolor="black")
+    plt.title(f"Average {col} per Step")
+    plt.xlabel("Step")
+    plt.ylabel(f"{col} Mean")
+    plt.grid(alpha=0.3, axis="y")
+    
+    plt.tight_layout()
     plt.show()
 
+# Step distribution with x-axis labels for each step
 plt.figure(figsize=(6, 4))
-plt.hist(df["Step"], bins=13, color="lightblue", edgecolor="black")
+
+# Count values per step
+step_counts = df["Step"].value_counts().sort_index()
+
+# Plot as bar chart
+plt.bar(step_counts.index, step_counts.values, color="lightblue", edgecolor="black")
+
+# Ensure x-axis has all steps labeled
+plt.xticks(step_counts.index)
+
 plt.title("Step Distribution")
-plt.xlabel("Step Value")
+plt.xlabel("Step")
 plt.ylabel("Frequency")
-plt.grid(alpha=0.3)
+plt.grid(alpha=0.3, axis="y")
 plt.show()
+
+# Step-wise statistics for reference
+step_stats = df.groupby("Step")[["X", "Y", "Z"]].agg(["mean", "std", "min", "max"])
+print("\nStep-wise Statistics (rounded to 2 decimals):\n")
+print(step_stats.round(2))
 
 ## QUESTION 3 ##
 
