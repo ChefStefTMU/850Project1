@@ -15,6 +15,24 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 df = pd.read_csv("data/project_1_data.csv")
 
 ## QUESTION 2 ##
+
+fig = plt.figure(figsize=(10, 7))
+axes = fig.add_subplot(111, projection='3d')
+
+scatter = axes.scatter(
+    df['X'], df['Y'], df['Z'],
+    c=df['Step'], cmap='tab20'
+)
+
+axes.set_xlabel("X")
+axes.set_ylabel("Y")
+axes.set_zlabel("Z")
+axes.set_title("3D Scatter Plot of X, Y, Z (Colored by Step)")
+
+legend = axes.legend(*scatter.legend_elements(), title="Step", bbox_to_anchor = (1.15, 1), loc = 'upper left')
+
+plt.show()
+
 # Statistical analysis
 print("\n---- QUESTION 2: DATA ANALYSIS ----\n")
 print("Shape of the Data (Rows, Columns):")
